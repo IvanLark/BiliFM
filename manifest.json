@@ -1,0 +1,46 @@
+{
+  "manifest_version": 3,
+  "name": "B站音乐播放器插件",
+  "version": "1.0.0",
+  "description": "一款专为B站用户设计的浏览器插件，提供便捷的音频收藏与播放功能。",
+  "permissions": [
+    "storage", 
+    "tabs", 
+    "cookies",
+    "declarativeNetRequest",
+    "contextMenus",
+    "activeTab"
+  ],
+  "background": {
+    "service_worker": "src/background/background.ts",
+    "type": "module"
+  },
+  "action": {
+    "default_icon": "public/icon.png"
+  },
+  "icons": {
+    "128": "public/icon.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.bilibili.com/*"],
+      "js": ["src/content/content.tsx"]
+    }
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "declarative_net_request": {
+    "rule_resources": [{
+      "id": "ruleset_1",
+      "enabled": true,
+      "path": "rules.json"
+    }]
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["index.html"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

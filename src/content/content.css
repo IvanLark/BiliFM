@@ -1,0 +1,198 @@
+/* 收藏卡片样式 */
+.collect-card {
+  z-index: 9999;
+  pointer-events: auto;
+  position: relative;
+  margin: 10px 0;
+  margin-top: 0;
+  padding: 15px 20px;
+  background-color: #f7f8fa;
+  box-shadow: none;
+  border-radius: 0;
+  width: 320px;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  border: 1px solid #e4e6eb;
+  transition: background 0.2s;
+  background: #fff;
+}
+
+.collect-card:hover {
+  background: #f0f2f5;
+  box-shadow: none;
+  transform: none;
+}
+
+.collect-card h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  color: #1c1e21;
+  text-align: center;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.playlist-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  margin: 5px 0;
+}
+
+.collect-song-button {
+  width: 100%;
+  display: block;
+  box-sizing: border-box;
+  margin-bottom: 10px;
+  padding: 6px 0;
+  background-color: #1877f2;
+  color: #fff;
+  border: 1px solid #1877f2;
+  border-radius: 0;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 500;
+  transition: background 0.2s, color 0.2s, border 0.2s;
+  box-shadow: none;
+}
+
+.collect-song-button:hover {
+  background-color: #145db2;
+  border-color: #145db2;
+  color: #fff;
+  transform: none;
+}
+
+.collect-song-button:disabled {
+  background-color: #e4e6eb;
+  color: #b0b3b8;
+  border-color: #e4e6eb;
+  cursor: not-allowed;
+  opacity: 1;
+  transform: none;
+}
+
+.add-to-playlist-button {
+  padding: 6px 10px;
+  background-color: #f0f2f5;
+  color: #1877f2;
+  border: 1px solid #1877f2;
+  border-radius: 0;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 500;
+  transition: background 0.2s, color 0.2s, border 0.2s;
+  box-shadow: none;
+}
+
+.add-to-playlist-button:hover {
+  background-color: #e4e6eb;
+  color: #145db2;
+  border-color: #145db2;
+  transform: none;
+}
+
+.collect-card select {
+  padding: 10px;
+  border: 1px solid #e4e6eb;
+  border-radius: 0;
+  font-size: 15px;
+  flex: 1;
+  background-color: #f7f8fa;
+  color: #1c1e21;
+  box-shadow: none;
+  outline: none;
+  transition: border 0.2s;
+}
+
+.collect-card select:focus {
+  border-color: #1877f2;
+}
+
+.playlist-container label {
+  color: #606770;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.playlist-row {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  width: 100%;
+  margin: 0;
+}
+
+.playlist-row label {
+  display: flex;
+  align-items: center;
+  background: #f7f8fa;
+  color: #606770;
+  font-size: 15px;
+  font-weight: 500;
+  padding: 0 10px;
+  border: 1px solid #e4e6eb;
+  border-radius: 0;
+  height: 35px;
+  margin: 0;
+  box-sizing: border-box;
+  position: relative;
+  z-index: 3;
+}
+
+.playlist-row select {
+  padding: 0 14px;
+  border: 1px solid #e4e6eb;
+  border-radius: 0;
+  font-size: 15px;
+  background-color: #fff;
+  color: #1c1e21;
+  box-shadow: none;
+  outline: none;
+  transition: border 0.2s;
+  height: 35px;
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  margin-left: -1px;
+  margin-right: -1px;
+  position: relative;
+  z-index: 2;
+}
+
+.playlist-row select:focus {
+  border: 1px solid #1877f2;
+  z-index: 4;
+}
+
+.playlist-row .add-to-playlist-button {
+  padding: 0 10px;
+  background-color: #f0f2f5;
+  color: #1877f2;
+  border: 1px solid #1877f2;
+  border-radius: 0;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 500;
+  transition: background 0.2s, color 0.2s, border 0.2s;
+  box-shadow: none;
+  height: 35px;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  margin-left: 1px;
+  position: relative;
+  z-index: 1;
+}
+
+.playlist-row .add-to-playlist-button:hover {
+  background-color: #e4e6eb;
+  color: #145db2;
+  border-color: #145db2;
+}
+
+/* Root element styles for React Content Script */
+#crx-root {
+  position: relative;
+  z-index: 9999;
+}

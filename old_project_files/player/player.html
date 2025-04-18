@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light"> <!-- Added data-theme -->
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>bilibili音乐播放器</title>
+  <!-- Keep existing links -->
+  <link rel="stylesheet" href="player.css">
+  <link href="daisyui.css" rel="stylesheet" type="text/css" />
+  <link href="themes.css" rel="stylesheet" type="text/css" />
+  <!-- Add Font Awesome for icons (optional, but nice for buttons) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    /* Custom scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background-color: oklch(var(--b3)/.4);
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background-color: oklch(var(--b3)/.6);
+    }
+    /* Ensure player bar is above content */
+    #audio-player-bar { z-index: 50; }
+    /* Ensure modal is above player bar */
+    dialog.modal { z-index: 60; }
+    /* Ensure theme dropdown is above playlist detail */
+    main#song-section > div:first-child { z-index: 10; } /* Theme switcher container */
+    #playlist-detail-info { z-index: 5; } /* Ensure playlist info is below switcher */
+
+    /* 改进的进度条样式 */
+    .player-progress-bar-container {
+        position: relative;
+        width: 100%;
+        height: 16px; /* 更高以便于交互 */
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+    }
+    
+    #audio-progress-visual {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 100%;
+        height: 6px; /* 适当高度 */
+        border-radius: 3px;
+        background-color: oklch(var(--b3)/0.5);
+        border: none; /* 移除边框 */
+        overflow: hidden;
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+        box-shadow: none; /* 移除阴影 */
+    }
+    
+    #audio-progress-visual::-webkit-progress-bar {
+        background-color: oklch(var(--b3)/0.5);
+        border-radius: 3px;
+        border: none;
+    }
+    
+    #audio-progress-visual::-webkit-progress-value {
+        background: oklch(var(--p)); /* 纯色进度条 */
+        border-radius: 3px;
+        transition: width 0.1s linear;
+        box-shadow: none;
+    }
+    
+    #audio-progress-visual::-moz-progress-bar {
+        background: oklch(var(--p));
+        border-radius: 3px;
+        transition: width 0.1s linear;
+        box-shadow: none;
+    }
+    
+    /* 交互式但不可见的范围滑块 */
+    #audio-progress-range {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 100%;
+        height: 100%;
+        background: transparent;
+        outline: none;
+        cursor: pointer;
+        position: absolute;
+        top: 0;
+        left: 0;
+        margin: 0;
+        border: none;
+    }
+    
+    #audio-progress-range::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 12px;
+        height: 12px;
+        background: oklch(var(--p));
+        border-radius: 50%;
+        cursor: pointer;
+        border: 2px solid white;
+        box-shadow: 0 0 3px rgba(0, 0, 0, 0.2);
+        opacity: 0; /* 默认隐藏 */
+        transition: opacity 0.2s;
+    }
+    
+    #audio-progress-range::-moz-range-thumb {
+        width: 12px;
+        height: 12px;
+        background: oklch(var(--p));
+        border-radius: 50%;
+        cursor: pointer;
+        border: 2px solid white;
+        box-shadow: 0 0 3px rgba(0, 0, 0, 0.2);
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+    
+    .player-progress-bar-container:hover #audio-progress-range::-webkit-slider-thumb {
+        opacity: 1; /* 悬停时显示拖动旋钮 */
+    }
+    
+    .player-progress-bar-container:hover #audio-progress-range::-moz-range-thumb {
+        opacity: 1;
+    }
+
+    /* 侧边栏菜单项样式优化 */
+    #playlist-section {
+        border-right: 1px solid oklch(var(--b3)/0.6);
+        background-color: oklch(var(--b1));
+    }
+    
+    #playlist-section .section-title {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: oklch(var(--bc)/0.6);
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between; /* 确保标题和按钮左右分布 */
+        padding-left: 0.5rem;
+        padding-right: 0.5rem; /* 添加右侧内边距为加号腾出空间 */
+    }
+    
+    #playlist-section .section-title i {
+        margin-right: 0.5rem;
+    }
+
+    /* 创建歌单按钮样式 */
+    #create-playlist-btn {
+        margin-left: auto; /* 确保按钮靠右 */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px; /* 固定宽度 */
+        height: 24px; /* 固定高度 */
+        padding: 0; /* 移除内边距 */
+        min-height: unset; /* 覆盖默认的最小高度 */
+    }
+    
+    #playlist-section ul {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 1rem 0;
+    }
+    
+    #playlist-section ul > li > a {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        border-radius: 0.5rem;
+        margin-bottom: 0.25rem;
+        transition: all 0.2s ease-in-out;
+        font-weight: 500;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    #playlist-section ul > li > a i {
+        margin-right: 0.5rem;
+        width: 1.2rem;
+        text-align: center;
+        font-size: 0.9rem;
+    }
+    
+    #playlist-section ul > li > a:hover {
+        background-color: oklch(var(--b2));
+    }
+    
+    #playlist-section ul > li > a.active {
+        background-color: oklch(var(--p)/0.15);
+        color: oklch(var(--p));
+        font-weight: 600;
+    }
+    
+    #playlist-section ul > li > a.active::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        background-color: oklch(var(--p));
+        border-radius: 0 3px 3px 0;
+    }
+    
+    #playlist-section ul > li > a.active:hover {
+        background-color: oklch(var(--p)/0.2);
+    }
+    
+    /* 全部歌曲特殊样式 */
+    #playlist-all {
+        background-color: oklch(var(--b2)/0.4);
+    }
+    
+    #playlist-all.active {
+        background-color: oklch(var(--p)/0.15);
+    }
+    
+    /* 空歌单列表状态 */
+    .playlist-empty {
+        text-align: center;
+        color: oklch(var(--bc)/0.5);
+        font-size: 0.9rem;
+        padding: 1rem 0;
+    }
+    
+    /* 底部播放器改进 */
+    #audio-player-bar {
+        background-color: oklch(var(--b1)/0.85);
+        backdrop-filter: blur(10px);
+        border-top: 1px solid oklch(var(--b3)/0.5);
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+    }
+    
+    /* 封面样式修复 - 移除黑框 */
+    #player-cover-container {
+        background: none;
+        box-shadow: none;
+    }
+    
+    #player-cover-container .w-14 {
+        border-radius: 6px;
+        overflow: hidden;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    /* 播放器进度条悬停和拖动效果 */
+    .player-progress-bar-container.dragging #audio-progress-visual {
+        height: 8px; /* 拖动时增加高度 */
+        transition: height 0.2s ease;
+    }
+    
+    .progress-playing::-webkit-progress-value {
+        background: oklch(var(--p));
+    }
+    
+    .progress-playing::-moz-progress-bar {
+        background: oklch(var(--p));
+    }
+    
+    @keyframes progress-animation {
+        0% {
+            background-position: 100% 0%;
+        }
+        100% {
+            background-position: 0% 0%;
+        }
+    }
+    
+    /* 封面图片动画效果 */
+    #player-cover-container.animate-pulse {
+        animation: subtle-pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    
+    @keyframes subtle-pulse {
+        0%, 100% {
+            opacity: 1;
+            transform: scale(1);
+        }
+        50% {
+            opacity: 0.95;
+            transform: scale(1.02);
+        }
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-base-200 font-sans">
+  <div id="main-container" class="flex flex-row h-[calc(100vh-theme(spacing.24))]"> <!-- Adjusted height -->
+    <!-- 歌单区 -->
+    <aside id="playlist-section" class="w-72 min-w-[220px] max-w-[320px] flex flex-col shadow-md">
+      <!-- Logo and Title -->
+      <div class="p-4 flex items-center gap-3 border-b border-base-300">
+        <img src="../assets/icons/icon.png" alt="Logo" class="w-8 h-8">
+        <h1 class="text-lg font-semibold text-base-content">B站音乐播放器</h1>
+      </div>
+      
+      <!-- 歌曲库区域 -->
+      <div class="p-4 pt-6">
+        <div class="section-title">
+          <i class="fas fa-music"></i>音乐库
+        </div>
+        <ul class="w-full menu menu-md">
+          <li><a id="playlist-all" class="playlist-item">
+            <i class="fas fa-compact-disc"></i>全部歌曲
+          </a></li>
+          <!-- <li><a class="flex items-center opacity-50 pointer-events-none">
+            <i class="fas fa-heart"></i>我的收藏
+            <span class="badge badge-sm badge-outline ml-auto">开发中</span>
+          </a></li> -->
+        </ul>
+      </div>
+      
+      <!-- 歌单区域 -->
+      <div class="px-4 pt-2 pb-4 flex-1 flex flex-col overflow-hidden">
+        <div class="section-title">
+          <div><i class="fas fa-list-ul"></i>我的歌单</div>
+          <button id="create-playlist-btn" class="btn btn-ghost btn-sm btn-circle">
+            <i class="fas fa-plus"></i>
+          </button>
+        </div>
+        
+        <!-- 歌单列表 -->
+        <ul id="playlist-list" class="flex-1 overflow-y-auto menu menu-md">
+          <!-- 歌单将通过JS渲染 -->
+        </ul>
+      </div>
+    </aside>
+    
+    <!-- 歌曲区 -->
+    <main id="song-section" class="flex-1 bg-base-200 px-10 py-8 overflow-y-auto relative pt-16"> <!-- Added pt-16 for spacing -->
+      <!-- Theme Switcher Dropdown -->
+      <div class="absolute top-4 right-6 z-10">
+        <details id="theme-dropdown-details" class="dropdown dropdown-end">
+          <summary class="btn btn-sm btn-ghost m-1">
+            主题
+            <svg width="12px" height="12px" class="ml-1 hidden h-3 w-3 fill-current opacity-60 sm:inline-block" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2048 2048"><path d="M1799 349l242 241-1017 1017L7 590l242-241 775 775 775-775z"></path></svg>
+          </summary>
+          <ul class="dropdown-content bg-base-100 text-base-content rounded-box top-px h-[70vh] max-h-96 w-56 overflow-y-auto shadow-2xl z-[1] mt-16 p-2">
+            <li><input type="radio" name="theme-dropdown" class="theme-controller btn btn-sm btn-block btn-ghost justify-start" aria-label="Default" value="default"/></li>
+            <li><input type="radio" name="theme-dropdown" class="theme-controller btn btn-sm btn-block btn-ghost justify-start" aria-label="Light" value="light"/></li>
+            <li><input type="radio" name="theme-dropdown" class="theme-controller btn btn-sm btn-block btn-ghost justify-start" aria-label="Dark" value="dark"/></li>
+            <li><input type="radio" name="theme-dropdown" class="theme-controller btn btn-sm btn-block btn-ghost justify-start" aria-label="Cupcake" value="cupcake"/></li>
+            <li><input type="radio" name="theme-dropdown" class="theme-controller btn btn-sm btn-block btn-ghost justify-start" aria-label="Bumblebee" value="bumblebee"/></li>
+            <li><input type="radio" name="theme-dropdown" class="theme-controller btn btn-sm btn-block btn-ghost justify-start" aria-label="Emerald" value="emerald"/></li>
+            <li><input type="radio" name="theme-dropdown" class="theme-controller btn btn-sm btn-block btn-ghost justify-start" aria-label="Corporate" value="corporate"/></li>
+            <li><input type="radio" name="theme-dropdown" class="theme-controller btn btn-sm btn-block btn-ghost justify-start" aria-label="Synthwave" value="synthwave"/></li>
+            <li><input type="radio" name="theme-dropdown" class="theme-controller btn btn-sm btn-block btn-ghost justify-start" aria-label="Retro" value="retro"/></li>
+            <li><input type="radio" name="theme-dropdown" class="theme-controller btn btn-sm btn-block btn-ghost justify-start" aria-label="Cyberpunk" value="cyberpunk"/></li>
+            <li><input type="radio" name="theme-dropdown" class="theme-controller btn btn-sm btn-block btn-ghost justify-start" aria-label="Valentine" value="valentine"/></li>
+            <li><input type="radio" name="theme-dropdown" class="theme-controller btn btn-sm btn-block btn-ghost justify-start" aria-label="Halloween" value="halloween"/></li>
+            <li><input type="radio" name="theme-dropdown" class="theme-controller btn btn-sm btn-block btn-ghost justify-start" aria-label="Garden" value="garden"/></li>
+            <li><input type="radio" name="theme-dropdown" class="theme-controller btn btn-sm btn-block btn-ghost justify-start" aria-label="Forest" value="forest"/></li>
+            <li><input type="radio" name="theme-dropdown" class="theme-controller btn btn-sm btn-block btn-ghost justify-start" aria-label="Aqua" value="aqua"/></li>
+            <li><input type="radio" name="theme-dropdown" class="theme-controller btn btn-sm btn-block btn-ghost justify-start" aria-label="Lofi" value="lofi"/></li>
+            <li><input type="radio" name="theme-dropdown" class="theme-controller btn btn-sm btn-block btn-ghost justify-start" aria-label="Pastel" value="pastel"/></li>
+            <li><input type="radio" name="theme-dropdown" class="theme-controller btn btn-sm btn-block btn-ghost justify-start" aria-label="Fantasy" value="fantasy"/></li>
+            <li><input type="radio" name="theme-dropdown" class="theme-controller btn btn-sm btn-block btn-ghost justify-start" aria-label="Wireframe" value="wireframe"/></li>
+            <li><input type="radio" name="theme-dropdown" class="theme-controller btn btn-sm btn-block btn-ghost justify-start" aria-label="Black" value="black"/></li>
+            <li><input type="radio" name="theme-dropdown" class="theme-controller btn btn-sm btn-block btn-ghost justify-start" aria-label="Luxury" value="luxury"/></li>
+            <li><input type="radio" name="theme-dropdown" class="theme-controller btn btn-sm btn-block btn-ghost justify-start" aria-label="Dracula" value="dracula"/></li>
+            <li><input type="radio" name="theme-dropdown" class="theme-controller btn btn-sm btn-block btn-ghost justify-start" aria-label="Cmyk" value="cmyk"/></li>
+            <li><input type="radio" name="theme-dropdown" class="theme-controller btn btn-sm btn-block btn-ghost justify-start" aria-label="Autumn" value="autumn"/></li>
+            <li><input type="radio" name="theme-dropdown" class="theme-controller btn btn-sm btn-block btn-ghost justify-start" aria-label="Business" value="business"/></li>
+            <li><input type="radio" name="theme-dropdown" class="theme-controller btn btn-sm btn-block btn-ghost justify-start" aria-label="Acid" value="acid"/></li>
+            <li><input type="radio" name="theme-dropdown" class="theme-controller btn btn-sm btn-block btn-ghost justify-start" aria-label="Lemonade" value="lemonade"/></li>
+            <li><input type="radio" name="theme-dropdown" class="theme-controller btn btn-sm btn-block btn-ghost justify-start" aria-label="Night" value="night"/></li>
+            <li><input type="radio" name="theme-dropdown" class="theme-controller btn btn-sm btn-block btn-ghost justify-start" aria-label="Coffee" value="coffee"/></li>
+            <li><input type="radio" name="theme-dropdown" class="theme-controller btn btn-sm btn-block btn-ghost justify-start" aria-label="Winter" value="winter"/></li>
+            <li><input type="radio" name="theme-dropdown" class="theme-controller btn btn-sm btn-block btn-ghost justify-start" aria-label="Dim" value="dim"/></li>
+            <li><input type="radio" name="theme-dropdown" class="theme-controller btn btn-sm btn-block btn-ghost justify-start" aria-label="Nord" value="nord"/></li>
+            <li><input type="radio" name="theme-dropdown" class="theme-controller btn btn-sm btn-block btn-ghost justify-start" aria-label="Sunset" value="sunset"/></li>
+          </ul>
+        </details>
+      </div>
+
+      <div id="playlist-detail-info" class="mb-6 relative"> <!-- Added relative -->
+        <!-- Playlist details rendered here by JS -->
+      </div>
+      <!-- Removed "歌曲" heading and divider -->
+      <ul id="song-list" class="space-y-1">
+        <!-- Song items will be rendered here by JS -->
+      </ul>
+    </main>
+  </div>
+
+  <!-- 创建歌单模态框 (Using <dialog>) -->
+  <dialog id="playlist-modal" class="modal">
+    <div class="modal-box w-11/12 max-w-md">
+      <form method="dialog">
+        <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+      </form>
+      <h3 class="font-bold text-lg mb-4">创建歌单</h3>
+      <form id="playlist-form" class="flex flex-col gap-4">
+        <div>
+          <label class="label pb-1">
+            <span class="label-text">歌单名称</span>
+          </label>
+          <input id="playlist-name" type="text" placeholder="输入名称" class="input input-bordered w-full" maxlength="30" required />
+        </div>
+        <div>
+          <label class="label pb-1">
+            <span class="label-text">歌单描述</span>
+          </label>
+          <textarea id="playlist-desc" placeholder="输入描述 (可选)" class="textarea textarea-bordered w-full resize-none" maxlength="100" rows="2"></textarea>
+        </div>
+        <div>
+          <label class="label pb-1">
+            <span class="label-text">歌单封面</span>
+          </label>
+          <div class="flex items-center gap-4">
+            <div class="avatar">
+              <div class="w-16 rounded">
+                <img id="playlist-cover-preview" src="assets/默认歌单封面.png" alt="封面预览" />
+              </div>
+            </div>
+            <label for="playlist-cover" class="btn btn-sm btn-outline">选择图片</label>
+            <input id="playlist-cover" type="file" accept="image/*" class="hidden" />
+            <span id="playlist-cover-filename" class="text-xs text-base-content/60 ml-2 truncate">未选择文件</span>
+          </div>
+          <div class="label">
+             <span class="label-text-alt">支持 jpg/png，建议 1:1，最大 1MB</span>
+          </div>
+        </div>
+        <div class="modal-action mt-2">
+          <button type="submit" class="btn btn-primary">创建</button>
+        </div>
+      </form>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+      <button>close</button>
+    </form>
+  </dialog>
+
+  <!-- 底部播放器 - 增强版 -->
+  <footer id="audio-player-bar" class="fixed left-0 right-0 bottom-0 h-24 bg-base-100/80 backdrop-blur-md border-t border-base-300 flex items-center px-4 md:px-6 shadow-inner">
+    <!-- 左侧：歌曲信息 -->
+    <div id="player-left" class="flex items-center gap-3 w-1/4 min-w-[200px]">
+      <!-- 封面 -->
+      <div id="player-cover-container" class="avatar flex-shrink-0"> 
+        <div class="w-14 rounded">
+          <img src="assets/默认歌单封面.png" alt="cover" />
+        </div>
+      </div>
+      <!-- 标题、艺术家 -->
+      <div id="player-info-actions" class="flex flex-col justify-center min-w-0 flex-grow"> 
+        <div id="player-song-details" class="flex flex-col min-w-0">
+           <span class="font-semibold text-sm truncate text-base-content">未选择歌曲</span>
+           <span class="text-xs text-base-content/60 truncate mt-1">未知艺术家</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 中间：控制和进度 -->
+    <div id="player-center" class="flex flex-col items-center flex-1 mx-4 min-w-[300px]">
+      <!-- 控制按钮 -->
+      <div id="audio-player-controls" class="flex items-center gap-3">
+         <button class="btn btn-ghost btn-sm btn-circle text-pink-500" title="跳转到原视频"><i class="fa-brands fa-bilibili fa-lg"></i></button>
+         <button class="btn btn-ghost btn-circle audio-btn" id="prev-btn" title="上一首">
+           <i class="fas fa-backward-step fa-lg"></i>
+         </button>
+         <button class="btn btn-primary btn-circle audio-btn w-12 h-12 shadow-md" id="play-btn" title="播放">
+           <i class="fas fa-play fa-xl"></i>
+         </button>
+         <button class="btn btn-ghost btn-circle audio-btn" id="next-btn" title="下一首">
+           <i class="fas fa-forward-step fa-lg"></i>
+         </button>
+         <button class="btn btn-ghost btn-sm btn-circle" title="播放模式（暂不可用）"><i class="fas fa-random text-lg"></i></button> 
+      </div>
+      <!-- 进度条和时间 -->
+      <div class="flex items-center w-full gap-2 mt-2 px-4"> 
+        <span id="audio-current-time" class="text-xs text-base-content/70 w-10 text-right tabular-nums font-medium">00:00</span>
+        <!-- 进度条容器 -->
+        <div class="player-progress-bar-container flex-1">
+            <!-- 可见进度条 -->
+            <progress id="audio-progress-visual" value="0" max="100"></progress>
+            <!-- 交互式范围滑块（隐藏但可交互） -->
+            <input id="audio-progress-range" type="range" min="0" max="100" value="0" />
+        </div>
+        <span id="audio-duration" class="text-xs text-base-content/70 w-10 text-left tabular-nums font-medium">00:00</span>
+      </div>
+    </div>
+
+    <!-- 右侧：额外控制 -->
+    <div id="player-right" class="flex items-center justify-end gap-3 w-1/4 min-w-[180px]">
+       <button class="btn btn-ghost btn-sm btn-circle" title="音量（暂不可用）"><i class="fas fa-volume-high"></i></button>
+       <button class="btn btn-ghost btn-sm btn-circle" title="播放列表（暂不可用）"><i class="fas fa-list-ul"></i></button>
+    </div>
+
+    <audio id="audio-element" src="" style="display:none;"></audio>
+  </footer>
+
+  <!-- Keep existing scripts -->
+  <script src="tailwindcss.js"></script>
+  <script src="jquery.js"></script>
+  <script src="player.js"></script>
+  <script>
+    // Persist theme choice & Close dropdown on select
+    const themeDropdownDetails = document.getElementById('theme-dropdown-details');
+    const themeRadios = document.querySelectorAll('input[name="theme-dropdown"]');
+    const currentTheme = localStorage.getItem('biliplayer_theme') || 'light';
+    document.documentElement.setAttribute('data-theme', currentTheme);
+
+    themeRadios.forEach(radio => {
+        if (radio.value === currentTheme) {
+            radio.checked = true;
+        }
+        radio.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                const newTheme = e.target.value;
+                localStorage.setItem('biliplayer_theme', newTheme);
+                document.documentElement.setAttribute('data-theme', newTheme);
+                // Close the dropdown
+                if (themeDropdownDetails) {
+                    themeDropdownDetails.removeAttribute('open');
+                }
+            }
+        });
+    });
+
+    // Modal handling for <dialog>
+    const createPlaylistBtn = document.getElementById('create-playlist-btn');
+    const playlistModal = document.getElementById('playlist-modal');
+
+    createPlaylistBtn.addEventListener('click', () => {
+      playlistModal.showModal();
+      // Reset form if needed (JS function might already do this)
+      $("#playlist-form")[0].reset();
+      $("#playlist-cover-preview").attr("src", "assets/默认歌单封面.png");
+      $("#playlist-cover-filename").text("未选择文件");
+    });
+
+    // 播放器进度条交互增强
+    const progressContainer = document.querySelector('.player-progress-bar-container');
+    const progressRange = document.getElementById('audio-progress-range');
+    const progressVisual = document.getElementById('audio-progress-visual');
+    
+    if (progressContainer && progressRange && progressVisual) {
+      // 鼠标移动时更新拖动手柄位置
+      progressContainer.addEventListener('mousemove', (e) => {
+        const rect = progressContainer.getBoundingClientRect();
+        const percent = Math.min(Math.max(0, (e.clientX - rect.left) / rect.width), 1) * 100;
+        // 仅当鼠标悬停在进度条上时，更新视觉提示
+        if (e.target === progressContainer || e.target === progressRange) {
+          progressRange.style.setProperty('--hover-percent', `${percent}%`);
+        }
+      });
+    }
+  </script>
+</body>
+</html>
