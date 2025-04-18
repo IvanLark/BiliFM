@@ -28,7 +28,7 @@ const PlaylistSection: React.FC<PlaylistSectionProps> = ({
       {/* Logo和标题 */}
       <div className="p-4 flex items-center gap-3 border-b border-base-300">
         <img src="/icon.png" alt="Logo" className="w-8 h-8" />
-        <h1 className="text-lg font-semibold text-base-content">B站音乐播放器</h1>
+        <h1 className="text-lg font-semibold text-base-content">BiliFM</h1>
       </div>
       
       {/* 搜索和创建歌单按钮 */}

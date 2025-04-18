@@ -1,6 +1,6 @@
 import { Song, Playlist } from './storage.type';
 
-const dbName = "BilibiliMusicPlayerDB";
+const dbName = "BiliFM";
 const dbVersion = 3;
 const dbStoreNames = {
   PLAYLISTS: "playlists", // 歌单存储

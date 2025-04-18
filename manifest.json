@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "B站音乐播放器插件",
+  "name": "BiliFM",
   "version": "1.0.0",
   "description": "一款专为B站用户设计的浏览器插件，提供便捷的音频收藏与播放功能。",
   "permissions": [
@@ -16,7 +16,8 @@
     "type": "module"
   },
   "action": {
-    "default_icon": "public/icon.png"
+    "default_icon": "public/icon.png",
+    "default_popup": "index.html"
   },
   "icons": {
     "128": "public/icon.png"

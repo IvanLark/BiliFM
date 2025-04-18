@@ -6,7 +6,6 @@ import AudioPlayer from './components/AudioPlayer';
 import CreatePlaylistModal from './components/CreatePlaylistModal';
 import AddToPlaylistModal from './components/AddToPlaylistModal';
 import SettingsModal from './components/SettingsModal'; // 添加设置模态框
-import ThemeSelector from './components/ThemeSelector';
 import DeleteConfirmModal from './components/DeleteConfirmModal';
 import { ToastContainer } from './components/Toast';
 import { toast } from './utils/toast';

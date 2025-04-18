@@ -23,13 +23,13 @@ chrome.runtime.onInstalled.addListener(() => {
 initDatabase();
 
 // 获取所有B站cookie
-chrome.cookies.getAll({ url: `https://www.bilibili.com` }, (cookies) => {
-  if (chrome.runtime.lastError) {
-    console.error("获取 Cookie 时出错:", chrome.runtime.lastError);
-    return;
-  }
-  console.log("bilibili cookies:", cookies);
-});
+// chrome.cookies.getAll({ url: `https://www.bilibili.com` }, (cookies) => {
+//   if (chrome.runtime.lastError) {
+//     console.error("获取 Cookie 时出错:", chrome.runtime.lastError);
+//     return;
+//   }
+//   console.log("bilibili cookies:", cookies);
+// });
 
 // 点击插件图标打开播放器
 chrome.action.onClicked.addListener(() => {
