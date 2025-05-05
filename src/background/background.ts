@@ -1,6 +1,5 @@
-import { Song, Playlist } from '../storage/storage.type';
+import { Song, Playlist } from "../storage/storage.type";
 import {
-  initDatabase,
   getAllPlaylists,
   addPlaylist,
   addSong,
@@ -10,17 +9,20 @@ import {
   deletePlaylistById,
   checkSongExists,
   removeSongFromPlaylist,
-  importData
-} from '../storage/storage.util';
-import { getVideoInfo } from '../utils/bilibiliApi';
+  importData,
+  ensureDatabase,
+} from "../storage/storage.util";
+import { getVideoInfo } from "../utils/bilibiliApi";
 
 // 后台主脚本
 chrome.runtime.onInstalled.addListener(() => {
   console.log("B站音乐播放器插件已安装");
+  
+  // 扩展启动时预初始化数据库
+  ensureDatabase().catch(error => {
+    console.error("数据库初始化失败:", error);
+  });
 });
-
-// 初始化 IndexedDB 数据库
-initDatabase();
 
 // 获取所有B站cookie
 // chrome.cookies.getAll({ url: `https://www.bilibili.com` }, (cookies) => {
@@ -42,125 +44,140 @@ const onSongUpdate = () => {
   chrome.runtime.sendMessage({
     action: "song_update",
   });
-}
+};
 
 const onPlaylistUpdate = () => {
   chrome.runtime.sendMessage({
     action: "playlist_update",
   });
-}
+};              
 
 // 监听来自内容脚本的消息
-chrome.runtime.onMessage.addListener((
-  message: { action: string; data?: unknown; playlistId?: number; songId?: number }, 
-  sender: chrome.runtime.MessageSender,
-  sendResponse: (response?: unknown) => void
-) => {
-  // 初始化窗口
-  if (message.action === "collect_card_init") {
-    console.log("收到初始化窗口请求:", sender.tab?.id);
-    if (message.data) {
-      const song = message.data as Song;
-      checkSongExists(song.bvid, song.page, ({ isExist, id }) => {
-        // 获取歌单
-        getAllPlaylists(({ playlists }) => {
-          sendResponse({ isExist, playlists, id });
+chrome.runtime.onMessage.addListener(
+  (
+    message: {
+      action: string;
+      data?: unknown;
+      playlistId?: number;
+      songId?: number;
+    },
+    sender: chrome.runtime.MessageSender,
+    sendResponse: (response?: unknown) => void
+  ) => {
+    // 初始化窗口
+    if (message.action === "collect_card_init") {
+      console.log("收到初始化窗口请求:", sender.tab?.id);
+      if (message.data) {
+        const song = message.data as Song;
+        checkSongExists(song.bvid, song.page, ({ isExist, id }) => {
+          // 获取歌单
+          getAllPlaylists(({ playlists }) => {
+            sendResponse({ isExist, playlists, id });
+          });
         });
-      });
+      }
+      return true; // 表示异步响应
     }
-    return true; // 表示异步响应
-  }
-  // 收藏音频
-  if (message.action === "collect_song") {
-    console.log("收到收藏音频请求:", message.data);
-    const song = message.data as Song;
-    addSong(song, ({ success, id }) => {
-      if (success) {
-        onSongUpdate();
-      }
-      sendResponse({ success, id });
-    });
-    return true; // 表示异步响应
-  }
-  // 添加歌曲到歌单
-  if (message.action === "add_song_to_playlist") {
-    console.log("收到添加歌曲到歌单请求:", message.playlistId, message.songId);
-    addSongToPlaylist(message.playlistId as number, message.songId as number, ({ success }) => {
-      if (success) {
-        onPlaylistUpdate();
-      }
-      sendResponse({ success });
-    });
-    return true; // 表示异步响应
-  }
-  // 获取所有歌曲
-  if (message.action === "get_all_songs") {
-    getAllSongs(({ success, songs }) => {
-      sendResponse({ success, songs });
-    });
-    return true; // 异步响应
-  }
-  // 获取所有歌单
-  if (message.action === "get_all_playlists") {
-    getAllPlaylists(({ success, playlists }) => {
-      sendResponse({ success, playlists });
-    });
-    return true; // 异步响应
-  }
-  // 添加歌单
-  if (message.action === "add_playlist") {
-    const playlist = message.data as Playlist;
-    addPlaylist(playlist, ({ success, id }) => {
-      sendResponse({ success, id });
-    });
-    return true; // 异步响应
-  }
-  // 删除歌曲
-  if (message.action === "delete_song") {
-    deleteSongById(message.songId as number, ({ success }) => {
-      sendResponse({ success });
-    });
-    return true;
-  }
-  // 删除歌单
-  if (message.action === "delete_playlist") {
-    deletePlaylistById(message.playlistId as number, ({ success }) => {
-      sendResponse({ success });
-    });
-    return true;
-  }
-  // 从歌单移除歌曲
-  if (message.action === "remove_song_from_playlist") {
-    removeSongFromPlaylist(
-      message.playlistId as number,
-      message.songId as number,
-      ({ success }) => {
+    // 收藏音频
+    if (message.action === "collect_song") {
+      console.log("收到收藏音频请求:", message.data);
+      const song = message.data as Song;
+      addSong(song, ({ success, id }) => {
+        if (success) {
+          onSongUpdate();
+        }
+        sendResponse({ success, id });
+      });
+      return true; // 表示异步响应
+    }
+    // 添加歌曲到歌单
+    if (message.action === "add_song_to_playlist") {
+      console.log(
+        "收到添加歌曲到歌单请求:",
+        message.playlistId,
+        message.songId
+      );
+      addSongToPlaylist(
+        message.playlistId as number,
+        message.songId as number,
+        ({ success }) => {
+          if (success) {
+            onPlaylistUpdate();
+          }
+          sendResponse({ success });
+        }
+      );
+      return true; // 表示异步响应
+    }
+    // 获取所有歌曲
+    if (message.action === "get_all_songs") {
+      getAllSongs(({ success, songs }) => {
+        sendResponse({ success, songs });
+      });
+      return true; // 异步响应
+    }
+    // 获取所有歌单
+    if (message.action === "get_all_playlists") {
+      getAllPlaylists(({ success, playlists }) => {
+        sendResponse({ success, playlists });
+      });
+      return true; // 异步响应
+    }
+    // 添加歌单
+    if (message.action === "add_playlist") {
+      const playlist = message.data as Playlist;
+      addPlaylist(playlist, ({ success, id }) => {
+        sendResponse({ success, id });
+      });
+      return true; // 异步响应
+    }
+    // 删除歌曲
+    if (message.action === "delete_song") {
+      deleteSongById(message.songId as number, ({ success }) => {
         sendResponse({ success });
-      }
-    );
-    return true;
+      });
+      return true;
+    }
+    // 删除歌单
+    if (message.action === "delete_playlist") {
+      deletePlaylistById(message.playlistId as number, ({ success }) => {
+        sendResponse({ success });
+      });
+      return true;
+    }
+    // 从歌单移除歌曲
+    if (message.action === "remove_song_from_playlist") {
+      removeSongFromPlaylist(
+        message.playlistId as number,
+        message.songId as number,
+        ({ success }) => {
+          sendResponse({ success });
+        }
+      );
+      return true;
+    }
+    // 导入数据
+    if (message.action === "import_data") {
+      const data = message.data as { songs: Song[]; playlists: Playlist[] };
+      importData(data, ({ success }) => {
+        sendResponse({ success });
+      });
+      return true;
+    }
+    return false;
   }
-  // 导入数据
-  if (message.action === "import_data") {
-    const data = message.data as { songs: Song[]; playlists: Playlist[] };
-    importData(data, ({ success }) => {
-      sendResponse({ success });
-    });
-    return true;
-  }
-  return false;
-});
+);
 
 const menu_id = {
-  collect_song: 'collect_song',
+  collect_song: "collect_song",
 };
 
 // 右键菜单
 chrome.contextMenus.create({
   id: menu_id.collect_song,
-  title: '收藏歌曲',
-  contexts: ['link'],
-  targetUrlPatterns: ['https://*.bilibili.com/video/BV*'],
+  title: "收藏歌曲",
+  contexts: ["link"],
+  targetUrlPatterns: ["https://*.bilibili.com/video/BV*"],
 });
 
 chrome.contextMenus.onClicked.addListener((info) => {
@@ -188,7 +205,7 @@ chrome.contextMenus.onClicked.addListener((info) => {
         const song: Song = {
           ...videoInfo,
           page,
-        }
+        };
         addSong(song, ({ success }) => {
           if (success) {
             //alert("歌曲已收藏！");

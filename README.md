@@ -128,6 +128,10 @@ BiliFM 使用浏览器的 IndexedDB 存储以下信息：
 
 用户数据存储在本地，不会上传到任何服务器。
 
+## Road Map
+
+- AI 工作流生成歌词
+
 ## 许可协议
 
 本项目采用 MIT 许可证。
@@ -137,4 +141,5 @@ BiliFM 使用浏览器的 IndexedDB 存储以下信息：
 BiliFM 仅供个人学习和研究使用。所有通过本扩展获取的音频内容版权归 B 站和原作者所有，请尊重版权，不要用于商业用途。
 
 ## 鸣谢
+
 - [azusa-player](https://github.com/kenmingwang/azusa-player)
